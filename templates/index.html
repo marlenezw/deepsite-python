@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSite Python - AI-Powered Website Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    <header class="bg-gradient-to-r from-purple-700 to-blue-600 shadow-lg">
+        <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center text-white">
+                <svg class="h-8 w-8 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM7.5 13.5C6.67 13.5 6 12.83 6 12C6 11.17 6.67 10.5 7.5 10.5C8.33 10.5 9 11.17 9 12C9 12.83 8.33 13.5 7.5 13.5ZM16.5 13.5C15.67 13.5 15 12.83 15 12C15 11.17 15.67 10.5 16.5 10.5C17.33 10.5 18 11.17 18 12C18 12.83 17.33 13.5 16.5 13.5ZM12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18Z" fill="currentColor"/>
+                </svg>
+                <span class="font-bold text-xl">DeepSite Python</span>
+            </div>
+            <div>
+                {% if session.get('authenticated') %}
+                <a href="/logout" class="text-white hover:underline">Logout</a>
+                {% else %}
+                <a href="/login" class="text-white hover:underline">Login</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <section class="mb-12 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 text-gray-800">Create Stunning Websites with AI</h1>
+            <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                Build beautiful, responsive websites by simply describing what you want. Powered by Azure OpenAI.
+            </p>
+            <a href="/create" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 inline-flex items-center">
+                <i class="fas fa-magic mr-2"></i>
+                Start Creating
+            </a>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="text-purple-600 mb-4 text-4xl">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2 text-gray-800">Fast & Simple</h3>
+                <p class="text-gray-600">
+                    Describe your website and watch as AI generates it in seconds. No coding required.
+                </p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="text-purple-600 mb-4 text-4xl">
+                    <i class="fas fa-paint-brush"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2 text-gray-800">Beautiful Design</h3>
+                <p class="text-gray-600">
+                    Get modern, responsive layouts built with TailwindCSS that look great on any device.
+                </p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="text-purple-600 mb-4 text-4xl">
+                    <i class="fas fa-code"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2 text-gray-800">Clean Code</h3>
+                <p class="text-gray-600">
+                    Export clean HTML, CSS, and JavaScript that you can easily modify and extend.
+                </p>
+            </div>
+        </section>
+
+        <section class="bg-gray-100 p-8 rounded-xl mb-16">
+            <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">How It Works</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="flex flex-col items-center">
+                    <div class="bg-purple-100 rounded-full p-4 mb-4">
+                        <span class="text-purple-600 text-2xl font-bold">1</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Describe Your Vision</h3>
+                    <p class="text-gray-600 text-center">
+                        Explain what you want, whether it's a landing page, portfolio, or blog.
+                    </p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="bg-purple-100 rounded-full p-4 mb-4">
+                        <span class="text-purple-600 text-2xl font-bold">2</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">AI Creates It</h3>
+                    <p class="text-gray-600 text-center">
+                        Our AI transforms your description into ready-to-use website code.
+                    </p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="bg-purple-100 rounded-full p-4 mb-4">
+                        <span class="text-purple-600 text-2xl font-bold">3</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Publish & Share</h3>
+                    <p class="text-gray-600 text-center">
+                        Deploy your site with one click and share it with the world.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="text-center mb-16">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800">Ready to build your website?</h2>
+            <a href="/create" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300">
+                Get Started Now
+            </a>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <span class="font-bold text-xl">DeepSite Python</span>
+                    <p class="text-gray-400">AI-Powered Website Generator</p>
+                </div>
+                <div>
+                    <p class="text-gray-400">
+                        Built with Flask and Azure OpenAI
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

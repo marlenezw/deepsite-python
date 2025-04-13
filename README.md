@@ -1,7 +1,7 @@
 # DeepSite Python
 
 A simplified Python version of DeepSite that allows users to generate websites using AI.
-This application uses `langchain-azure-ai` to access DeepSeek R1 model.
+This application uses [langchain-azure-ai](https://github.com/langchain-ai/langchain-azure) to access DeepSeek R1 model.
 
 ## Features
 
@@ -92,9 +92,4 @@ This Python version simplifies the original DeepSite application by:
 
 1. Replacing the React/TypeScript frontend with a simpler HTML/JavaScript approach
 2. Using Flask instead of Express.js for the backend
-3. Utilizing Azure OpenAI API instead of direct Hugging Face integration
-4. Providing a simpler deployment mechanism that doesn't require Hugging Face Spaces
-
-## License
-
-This project is for educational purposes only.
+3. Utilizing `langchain-azure-ai` instead of direct Hugging Face integration

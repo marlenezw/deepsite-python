@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSite Python - Website Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
+    <style>
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #editor {
+            height: 100%;
+            min-height: calc(100vh - 160px);
+        }
+        .hidden {
+            display: none;
+        }
+        .preview-iframe {
+            width: 100%;
+            height: calc(100vh - 160px);
+            border: none;
+        }
+        .flash-message {
+            animation: flash 0.5s ease-out;
+        }
+        @keyframes flash {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        #thoughts-panel {
+            width: 0;
+            transition: width 0.3s ease;
+            overflow: hidden;
+        }
+        #thoughts-panel.active {
+            width: 550px;
+            max-width: 40%;
+        }
+        #description-panel {
+            width: 0;
+            transition: width 0.3s ease;
+            overflow: hidden;
+        }
+        #description-panel.active {
+            width: 550px;
+            max-width: 40%;
+        }
+        #thoughts-content, #description-content {
+            max-height: calc(100vh - 160px);
+            overflow-y: auto;
+        }
+        .thinking-bubble, .description-bubble {
+            animation: fade-in 0.5s ease-out;
+        }
+        @keyframes fade-in {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .panel-toggle.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .side-panels {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <header class="bg-gradient-to-r from-purple-700 to-blue-600 shadow-lg">
+        <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center text-white">
+                <a href="/" class="flex items-center">
+                    <svg class="h-8 w-8 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM7.5 13.5C6.67 13.5 6 12.83 6 12C6 11.17 6.67 10.5 7.5 10.5C8.33 10.5 9 11.17 9 12C9 12.83 8.33 13.5 7.5 13.5ZM16.5 13.5C15.67 13.5 15 12.83 15 12C15 11.17 15.67 10.5 16.5 10.5C17.33 10.5 18 11.17 18 12C18 12.83 17.33 13.5 16.5 13.5ZM12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18Z" fill="currentColor"/>
+                    </svg>
+                    <span class="font-bold text-xl">DeepSite Python</span>
+                </a>
+            </div>
+            <div class="flex gap-4 items-center">
+                <button id="toggle-view" class="text-white hover:underline flex items-center">
+                    <i class="fas fa-eye mr-2"></i> <span id="view-text">Preview</span>
+                </button>
+                <button id="toggle-thoughts" class="text-white hover:underline flex items-center panel-toggle">
+                    <i class="fas fa-brain mr-2"></i> <span id="thoughts-text">Thoughts</span>
+                </button>
+                <button id="toggle-description" class="text-white hover:underline flex items-center panel-toggle">
+                    <i class="fas fa-comment-alt mr-2"></i> <span id="description-text">Description</span>
+                </button>
+                <button id="deploy-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1.5 px-4 rounded-lg shadow-md transition duration-300 flex items-center">
+                    <i class="fas fa-rocket mr-2"></i> Deploy
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mx-auto px-4 py-4">
+        <div id="notification" class="hidden flash-message bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded shadow-md">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span id="notification-message"></span>
+            </div>
+        </div>
+        
+        <div class="flex">
+            <!-- Main editor and preview section -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-4 flex-grow">
+                <div class="view-container flex flex-col">
+                    <div id="editor-container" class="relative">
+                        <div id="editor">{{ html|safe }}</div>
+                    </div>
+                    <div id="preview-container" class="hidden">
+                        <iframe id="preview-frame" class="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Side panels container -->
+            <div class="side-panels ml-4">
+                <!-- Thoughts panel -->
+                <div id="thoughts-panel" class="bg-white rounded-xl shadow-md overflow-hidden mb-4">
+                    <div class="p-4 bg-purple-100 border-b border-purple-200 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <i class="fas fa-brain text-purple-600 mr-2"></i>
+                            <h3 class="font-medium text-purple-800">DeepSeek Thoughts</h3>
+                        </div>
+                        <button id="close-thoughts" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="thoughts-content" class="p-4 text-sm">
+                        <p class="text-gray-500 italic">Model thoughts will appear here when generating...</p>
+                    </div>
+                </div>
+                
+                <!-- Description panel -->
+                <div id="description-panel" class="bg-white rounded-xl shadow-md overflow-hidden mb-4">
+                    <div class="p-4 bg-blue-100 border-b border-blue-200 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <i class="fas fa-comment-alt text-blue-600 mr-2"></i>
+                            <h3 class="font-medium text-blue-800">Description</h3>
+                        </div>
+                        <button id="close-description" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="description-content" class="p-4 text-sm">
+                        <p class="text-gray-500 italic">Model descriptions and explanations will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-6 left-0 w-full flex justify-center">
+            <div class="bg-black/80 rounded-xl py-3 px-5 flex items-center w-11/12 sm:w-3/4 lg:w-2/3">
+                <div class="text-white mr-3 text-xl">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <input 
+                    id="prompt-input" 
+                    type="text" 
+                    class="flex-grow bg-transparent text-white outline-none placeholder:text-gray-400"
+                    placeholder="Ask AI to create or modify the website..." 
+                />
+                <button 
+                    id="ask-ai-btn"
+                    class="ml-3 bg-purple-600 hover:bg-purple-700 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deploy Modal -->
+    <div id="deploy-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 m-4 max-w-md w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Deploy Website</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div>
+                <div class="mb-4">
+                    <label for="site-title" class="block text-gray-700 font-bold mb-2">Website Title</label>
+                    <input type="text" id="site-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="My Awesome Website">
+                </div>
+                <button id="confirm-deploy" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">
+                    Deploy Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black/30 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-8 flex flex-col items-center">
+            <div class="spinner text-4xl text-purple-600 mb-4">
+                <i class="fas fa-circle-notch"></i>
+            </div>
+            <p class="text-gray-700 font-medium">Generating your website...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <script>
+        // Initialize variables
+        let editor;
+        let currentView = 'editor';
+        let isGenerating = false;
+        let previousPrompt = '';
+        let thoughtsVisible = false;
+        let descriptionVisible = false;
+        let currentThoughts = '';
+        let currentDescription = '';
+
+        // DOM Elements
+        const toggleViewBtn = document.getElementById('toggle-view');
+        const viewText = document.getElementById('view-text');
+        const editorContainer = document.getElementById('editor-container');
+        const previewContainer = document.getElementById('preview-container');
+        const previewFrame = document.getElementById('preview-frame');
+        const promptInput = document.getElementById('prompt-input');
+        const askAiBtn = document.getElementById('ask-ai-btn');
+        const deployBtn = document.getElementById('deploy-btn');
+        const deployModal = document.getElementById('deploy-modal');
+        const closeModal = document.getElementById('close-modal');
+        const confirmDeploy = document.getElementById('confirm-deploy');
+        const siteTitle = document.getElementById('site-title');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notification-message');
+        
+        // Thoughts panel elements
+        const toggleThoughtsBtn = document.getElementById('toggle-thoughts');
+        const closeThoughtsBtn = document.getElementById('close-thoughts');
+        const thoughtsPanel = document.getElementById('thoughts-panel');
+        const thoughtsContent = document.getElementById('thoughts-content');
+        
+        // Description panel elements
+        const toggleDescriptionBtn = document.getElementById('toggle-description');
+        const closeDescriptionBtn = document.getElementById('close-description');
+        const descriptionPanel = document.getElementById('description-panel');
+        const descriptionContent = document.getElementById('description-content');
+
+        // Initialize Monaco Editor
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                value: document.getElementById('editor').innerText,
+                language: 'html',
+                theme: 'vs',
+                automaticLayout: true,
+                minimap: { enabled: false }
+            });
+            
+            // Initial preview update
+            updatePreview();
+        });
+
+        // Toggle between editor and preview
+        toggleViewBtn.addEventListener('click', () => {
+            if (currentView === 'editor') {
+                currentView = 'preview';
+                viewText.textContent = 'Editor';
+                editorContainer.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                updatePreview();
+            } else {
+                currentView = 'editor';
+                viewText.textContent = 'Preview';
+                previewContainer.classList.add('hidden');
+                editorContainer.classList.remove('hidden');
+            }
+        });
+
+        // Toggle thoughts panel
+        toggleThoughtsBtn.addEventListener('click', () => {
+            toggleThoughts();
+        });
+
+        closeThoughtsBtn.addEventListener('click', () => {
+            toggleThoughts();
+        });
+
+        function toggleThoughts() {
+            thoughtsVisible = !thoughtsVisible;
+            if (thoughtsVisible) {
+                thoughtsPanel.classList.add('active');
+                toggleThoughtsBtn.classList.add('active');
+            } else {
+                thoughtsPanel.classList.remove('active');
+                toggleThoughtsBtn.classList.remove('active');
+            }
+        }
+        
+        // Toggle description panel
+        toggleDescriptionBtn.addEventListener('click', () => {
+            toggleDescription();
+        });
+
+        closeDescriptionBtn.addEventListener('click', () => {
+            toggleDescription();
+        });
+
+        function toggleDescription() {
+            descriptionVisible = !descriptionVisible;
+            if (descriptionVisible) {
+                descriptionPanel.classList.add('active');
+                toggleDescriptionBtn.classList.add('active');
+            } else {
+                descriptionPanel.classList.remove('active');
+                toggleDescriptionBtn.classList.remove('active');
+            }
+        }
+
+        // Update preview iframe
+        function updatePreview() {
+            const html = editor.getValue();
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            previewFrame.src = url;
+        }
+
+        // Add thinking content to the thoughts panel
+        function addThinking(content) {
+            // Automatically show the thoughts panel when thinking starts
+            if (!thoughtsVisible && content.trim() !== '') {
+                toggleThoughts();
+            }
+            
+            // Add the thinking content to the panel
+            currentThoughts += content;
+            
+            // Update the thoughts panel content
+            thoughtsContent.innerHTML = `
+                <div class="thinking-bubble p-2 rounded bg-purple-50 border border-purple-100 mb-2">
+                    <p class="text-gray-700">${currentThoughts.replace(/\n/g, '<br>')}</p>
+                </div>
+            `;
+            
+            // Scroll to the bottom to show latest thoughts
+            thoughtsContent.scrollTop = thoughtsContent.scrollHeight;
+        }
+        
+        // Add description content to the description panel
+        function addDescription(content) {
+            // Automatically show the description panel when content arrives
+            if (!descriptionVisible && content.trim() !== '') {
+                toggleDescription();
+            }
+            
+            // Add the description content to the panel
+            currentDescription += content;
+            
+            // Update the description panel content
+            descriptionContent.innerHTML = `
+                <div class="description-bubble p-2 rounded bg-blue-50 border border-blue-100 mb-2">
+                    <p class="text-gray-700">${currentDescription.replace(/\n/g, '<br>')}</p>
+                </div>
+            `;
+            
+            // Scroll to the bottom to show latest description
+            descriptionContent.scrollTop = descriptionContent.scrollHeight;
+        }
+
+        // Clear thinking content
+        function clearThinking() {
+            currentThoughts = '';
+            thoughtsContent.innerHTML = '<p class="text-gray-500 italic">Model thoughts will appear here when generating...</p>';
+        }
+        
+        // Clear description content
+        function clearDescription() {
+            currentDescription = '';
+            descriptionContent.innerHTML = '<p class="text-gray-500 italic">Model descriptions and explanations will appear here...</p>';
+        }
+
+        // Ask AI function
+        askAiBtn.addEventListener('click', async () => {
+            const prompt = promptInput.value.trim();
+            if (!prompt || isGenerating) return;
+            
+            try {
+                isGenerating = true;
+                loadingOverlay.style.display = 'flex';
+                
+                // Clear previous content before starting new generation
+                clearThinking();
+                clearDescription();
+                
+                const response = await fetch('/api/ask-ai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt,
+                        html: editor.getValue(),
+                        previousPrompt
+                    })
+                });
+                
+                // Handle non-ok responses (errors)
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert(errorData.message || 'An error occurred');
+                    loadingOverlay.style.display = 'none';
+                    isGenerating = false;
+                    return;
+                }
+
+                // Handle streaming response
+                let html = '';
+                previousPrompt = prompt;
+                promptInput.value = '';
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                // Process the stream chunks
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                if (data.content) {
+                                    html += data.content;
+                                    
+                                    // Try to determine if we have a complete HTML document
+                                    if (html.includes('<!DOCTYPE html>') && html.includes('</html>')) {
+                                        editor.setValue(html);
+                                        updatePreview();
+                                    }
+                                } else if (data.thinking) {
+                                    // Handle thinking content
+                                    addThinking(data.thinking);
+                                } else if (data.description) {
+                                    // Handle description content
+                                    addDescription(data.description);
+                                } else if (data.error) {
+                                    alert(data.error);
+                                    break;
+                                }
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e);
+                            }
+                        }
+                    }
+                }
+                
+                // Switch to preview when generation is complete
+                currentView = 'preview';
+                viewText.textContent = 'Editor';
+                editorContainer.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                
+                // Show success notification
+                showNotification('Website generated successfully!');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while generating the website');
+            } finally {
+                loadingOverlay.style.display = 'none';
+                isGenerating = false;
+            }
+        });
+
+        // Handle Enter key in prompt input
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                askAiBtn.click();
+            }
+        });
+
+        // Deploy functionality
+        deployBtn.addEventListener('click', () => {
+            deployModal.style.display = 'flex';
+        });
+
+        closeModal.addEventListener('click', () => {
+            deployModal.style.display = 'none';
+        });
+
+        confirmDeploy.addEventListener('click', async () => {
+            const title = siteTitle.value.trim() || 'My Website';
+            const html = editor.getValue();
+            
+            if (!html) {
+                alert('No content to deploy');
+                return;
+            }
+            
+            try {
+                loadingOverlay.style.display = 'flex';
+                
+                const response = await fetch('/api/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        html,
+                        title
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    deployModal.style.display = 'none';
+                    showNotification(`Website deployed successfully! <a href="${data.url}" target="_blank" class="underline">View it here</a>`);
+                } else {
+                    alert(data.message || 'An error occurred during deployment');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred during deployment');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        });
+
+        // Show notification
+        function showNotification(message) {
+            notificationMessage.innerHTML = message;
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === deployModal) {
+                deployModal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
